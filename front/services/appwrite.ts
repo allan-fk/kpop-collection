@@ -1,45 +1,26 @@
 import { Client, Databases, ID, Query } from "react-native-appwrite";
 
-// Environment variables for Appwrite configuration
-const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
-const COLLECTION_ID = process.env.EXPO_PUBLIC_APPWRITE_COLLECTION_ID!;
+/// On récupère l'URL depuis le .env
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// Initialize the Appwrite client
-const client = new Client()
-    .setEndpoint("https://cloud.appwrite.io/v1")
-    .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!);
-
-// Initialize the Appwrite database service
-const database = new Databases(client);
-
-// Updates the search count for a movie or creates a new entry if it doesn't exist
-export const updateSearchCount = async (query: string, movie: Movie) => {
+// Enregistre ou met à jour un film recherché
+export const updateSearchCount = async (query: string, movie: any) => {
     try {
-        // Check if a document with the same search term already exists
-        const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
-            Query.equal("searchTerm", query),
-        ]);
-
-        if (result.documents.length > 0) {
-            // If the document exists, increment its count
-            const existingMovie = result.documents[0];
-            await database.updateDocument(
-                DATABASE_ID,
-                COLLECTION_ID,
-                existingMovie.$id,
-                {
-                    count: existingMovie.count + 1,
-                }
-            );
-        } else {
-            // If the document does not exist, create a new one
-            await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+        const response = await fetch(`${API_URL}/movies/search`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
                 searchTerm: query,
-                movie_id: movie.id,
+                movieId: movie.id, // Attention: le DTO Spring Boot attend 'movieId' (camelCase) et non 'movie_id'
                 title: movie.title,
-                count: 1,
-                poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
-            });
+                posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`, // DTO attend 'posterUrl'
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to update search count: ${response.statusText}`);
         }
     } catch (error) {
         console.error("Error updating search count:", error);
@@ -47,21 +28,24 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
     }
 };
 
-// Fetches the top 5 trending movies based on search count
-export const getTrendingMovies = async (): Promise<
-    TrendingMovie[] | undefined
-> => {
+// Récupère le Top 5 des tendances
+export const getTrendingMovies = async (): Promise<any[] | undefined> => {
     try {
-        const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
-            // Limit the results to 5
-            Query.limit(5),
-            // Order the results by the 'count' field in descending order
-            Query.orderDesc("count"),
-        ]);
+        const response = await fetch(`${API_URL}/movies/trending`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
 
-        return result.documents as unknown as TrendingMovie[];
+        if (!response.ok) {
+            throw new Error(`Failed to fetch trending movies: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data; // Retourne le tableau d'objets TrendingMovie généré par Spring Boot
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching trending movies:", error);
         return undefined;
     }
 };
