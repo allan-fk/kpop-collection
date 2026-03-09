@@ -82,3 +82,60 @@ interface SavedMovie {
   title: string;
   posterUrl: string;
 }
+
+// ── MusicBrainz ───────────────────────────────────────────────────────────────
+
+interface MBArtistCredit {
+  artist: {
+    id: string;
+    name: string;
+    "sort-name": string;
+  };
+  joinphrase?: string;
+}
+
+interface MBReleaseGroup {
+  id: string;
+  score?: number;
+  title: string;
+  "primary-type"?: string;
+  "first-release-date"?: string;
+  "artist-credit"?: MBArtistCredit[];
+}
+
+interface MBSearchResponse {
+  "release-groups": MBReleaseGroup[];
+  count: number;
+  offset: number;
+}
+
+interface MBRelease {
+  id: string;
+  title: string;
+  date?: string;
+  status?: string;
+}
+
+interface MBTrack {
+  id: string;
+  position: number;
+  number: string;
+  title: string;
+  length?: number;
+}
+
+interface MBMedia {
+  position: number;
+  format?: string;
+  "track-count": number;
+  tracks?: MBTrack[];
+}
+
+interface MBReleaseGroupDetails {
+  id: string;
+  title: string;
+  "primary-type"?: string;
+  "first-release-date"?: string;
+  "artist-credit"?: MBArtistCredit[];
+  releases?: MBRelease[];
+}
