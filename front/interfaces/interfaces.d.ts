@@ -75,3 +75,10 @@ interface TrendingCardProps {
   movie: TrendingMovie;
   index: number;
 }
+
+interface SavedMovie {
+  id: number;
+  movieId: number;
+  title: string;
+  posterUrl: string;
+}

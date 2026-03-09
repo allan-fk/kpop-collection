@@ -67,7 +67,8 @@ import { Link } from "expo-router";
 import { Text, Image, TouchableOpacity, View } from "react-native";
 
 import { icons } from "@/constants/icons";
-// Define the MovieCard component, accepting individual movie properties as props
+import { useFavorites } from "@/services/useFavorites";
+
 const MovieCard = ({
                        id,
                        poster_path,
@@ -75,24 +76,36 @@ const MovieCard = ({
                        vote_average,
                        release_date,
                    }: Movie) => {
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const favorited = isFavorite(id);
+
     return (
-        // Link component from Expo Router to handle navigation.
-        // The 'asChild' prop passes the link's functionality to its direct child.
         <Link href={`/movies/${id}`} asChild>
-            {/* TouchableOpacity makes the entire card pressable */}
             <TouchableOpacity className="w-[30%]">
-                {/* Image component to display the movie poster */}
-                <Image
-                    source={{
-                        uri: poster_path
-                            // Construct the full image URL if a poster_path exists
-                            ? `https://image.tmdb.org/t/p/w500${poster_path}`
-                            // Use a placeholder image if no poster is available
-                            : "https://placehold.co/600x400/1a1a1a/FFFFFF.png",
-                    }}
-                    className="w-full h-52 rounded-lg"
-                    resizeMode="cover"
-                />
+                <View className="relative">
+                    <Image
+                        source={{
+                            uri: poster_path
+                                ? `https://image.tmdb.org/t/p/w500${poster_path}`
+                                : "https://placehold.co/600x400/1a1a1a/FFFFFF.png",
+                        }}
+                        className="w-full h-52 rounded-lg"
+                        resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite({ id, title, poster_path });
+                        }}
+                        className="absolute top-2 right-2 bg-black/50 rounded-full p-1"
+                    >
+                        <Image
+                            source={icons.save}
+                            className="size-5"
+                            style={{ tintColor: favorited ? "#FFD700" : "#FFFFFF" }}
+                        />
+                    </TouchableOpacity>
+                </View>
 
                 {/* Text component to display the movie title, limited to one line */}
                 <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>
