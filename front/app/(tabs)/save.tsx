@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { icons } from "@/constants/icons";
 import { useFavorites } from "@/services/useFavorites";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   FlatList,
   Image,
@@ -54,7 +54,13 @@ const SavedMovieItem = ({
 
 const Save = () => {
   const router = useRouter();
-  const { savedMovies, toggleFavorite } = useFavorites();
+  const { savedMovies, toggleFavorite, loadFavorites } = useFavorites();
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [loadFavorites])
+  );
 
   const isEmpty = savedMovies.length === 0;
 

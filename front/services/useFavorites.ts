@@ -5,20 +5,22 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 export const useFavorites = () => {
   const [savedMovies, setSavedMovies] = useState<SavedMovie[]>([]);
 
+  const loadFavorites = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/movies/saved`);
+      if (res.ok) {
+        const data: SavedMovie[] = await res.json();
+        setSavedMovies(data);
+      }
+    } catch (e) {
+      console.error("useFavorites: error loading saved movies", e);
+    }
+  }, []);
+
   // Charge la liste des favoris depuis le backend au montage
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_URL}/movies/saved`);
-        if (res.ok) {
-          const data: SavedMovie[] = await res.json();
-          setSavedMovies(data);
-        }
-      } catch (e) {
-        console.error("useFavorites: error loading saved movies", e);
-      }
-    })();
-  }, []);
+    loadFavorites();
+  }, [loadFavorites]);
 
   const toggleFavorite = useCallback(
     async (movie: Pick<Movie, "id" | "title" | "poster_path">) => {
@@ -65,5 +67,5 @@ export const useFavorites = () => {
     [savedMovies]
   );
 
-  return { savedMovies, toggleFavorite, isFavorite };
+  return { savedMovies, toggleFavorite, isFavorite, loadFavorites };
 };
