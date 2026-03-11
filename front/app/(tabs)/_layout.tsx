@@ -81,7 +81,7 @@ const TabsLayout = () => {
                     )
                 }}
             />
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="search"
                 options={{
                     title: 'Search',
@@ -94,7 +94,7 @@ const TabsLayout = () => {
                         />
                     )
                 }}
-            />
+            /> */}
             <Tabs.Screen
                 name="albums"
                 options={{
@@ -110,6 +110,20 @@ const TabsLayout = () => {
                 }}
             />
             <Tabs.Screen
+                name="saved-albums"
+                options={{
+                    title: 'Saved Albums',
+                    headerShown: false,
+                    tabBarIcon: ({focused}) => (
+                        <TabIcon
+                            focused={focused}
+                            icon={icons.star}
+                            title="My Albums"
+                        />
+                    )
+                }}
+            />
+            {/* <Tabs.Screen
                 name="save"
                 options={{
                     title: 'Saved',
@@ -122,7 +136,7 @@ const TabsLayout = () => {
                         />
                     )
                 }}
-            />
+            /> */}
             <Tabs.Screen
                 name="profile"
                 options={{

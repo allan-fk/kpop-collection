@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, FlatList, Image } from "react-native";
+import {
+  Alert,
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+
+// @ts-ignore : expo-barcode-scanner est déprécié mais expo-camera ne possède pas encore scanFromURLAsync
+import { BarCodeScanner } from "expo-barcode-scanner";
+
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import SearchBar from "@/components/SearchBar";
 import AlbumCard from "@/components/AlbumCard";
-import { searchAlbums } from "@/services/musicApi";
+import { searchAlbums, searchAlbumByBarcode } from "@/services/musicApi";
 
 const Albums = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -12,7 +26,7 @@ const Albums = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debounce de 2000ms imposé par MusicBrainz pour éviter le bannissement
+  // ── Recherche textuelle (debounce 2000ms imposé par MusicBrainz) ─────────────
   useEffect(() => {
     if (!searchQuery.trim()) {
       setAlbums([]);
@@ -36,6 +50,71 @@ const Albums = () => {
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  // ── Recherche par code-barres ────────────────────────────────────────────────
+  const handlePickImage = async () => {
+    // 1. Demande de permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission requise",
+        "Autorisez l'accès à votre galerie pour utiliser cette fonctionnalité."
+      );
+      return;
+    }
+
+    // 2. Sélection de l'image
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      quality: 1,
+    });
+
+    if (picked.canceled || !picked.assets?.[0]) return;
+
+    const imageUri = picked.assets[0].uri;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 3. Lecture du code-barres depuis l'image statique
+      // @ts-ignore : ignorer l'avertissement de dépréciation
+      const barcodes = await BarCodeScanner.scanFromURLAsync(imageUri);
+
+      if (!barcodes || barcodes.length === 0) {
+        Alert.alert(
+          "Aucun code-barres détecté",
+          "Aucun code-barres n'a été trouvé sur cette image. Essayez avec une photo plus nette."
+        );
+        return;
+      }
+
+      const barcode = barcodes[0].data;
+
+      // 4. Recherche de l'album via le code-barres
+      const results = await searchAlbumByBarcode(barcode);
+
+      if (!results || results.length === 0) {
+        Alert.alert(
+          "Album introuvable",
+          `Aucun album n'a été trouvé pour le code-barres : ${barcode}`
+        );
+        return;
+      }
+
+      // 5. Mise à jour de la liste et effacement de la recherche textuelle
+      setSearchQuery("");
+      setAlbums(results);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Barcode scan failed");
+      Alert.alert(
+        "Erreur de scan",
+        "Une erreur est survenue lors de l'analyse de l'image."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-primary">
@@ -61,27 +140,41 @@ const Albums = () => {
             <View className="w-full flex-row justify-center mt-20 items-center">
               <Image source={icons.logo} className="w-12 h-10" />
             </View>
-            <View className="my-5">
-              <SearchBar
-                placeholder="Search for an album"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+
+            {/* SearchBar + bouton galerie */}
+            <View className="my-5 flex-row items-center gap-x-3">
+              <View className="flex-1">
+                <SearchBar
+                  placeholder="Search for an album"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={handlePickImage}
+                className="bg-dark-200 rounded-full p-3"
+                disabled={loading}
+              >
+                <Ionicons name="barcode-outline" size={24} color="#ab8bff" />
+              </TouchableOpacity>
             </View>
+
             {loading && (
-              <ActivityIndicator
-                size="large"
-                color="#0000ff"
-                className="my-3"
-              />
+              <ActivityIndicator size="large" color="#0000ff" className="my-3" />
             )}
             {error && (
               <Text className="text-red-500 px-5 my-3">Error: {error}</Text>
             )}
-            {!loading && !error && searchQuery.trim() && albums.length > 0 && (
+            {!loading && !error && albums.length > 0 && (
               <Text className="text-xl text-white font-bold">
-                Results for{" "}
-                <Text className="text-accent">{searchQuery}</Text>
+                {searchQuery.trim() ? (
+                  <>
+                    Results for{" "}
+                    <Text className="text-accent">{searchQuery}</Text>
+                  </>
+                ) : (
+                  "Results"
+                )}
               </Text>
             )}
           </>
@@ -92,7 +185,7 @@ const Albums = () => {
               <Text className="text-center text-gray-500">
                 {searchQuery.trim()
                   ? "No albums found"
-                  : "Start typing to search for albums"}
+                  : "Start typing or scan a barcode to find albums"}
               </Text>
             </View>
           ) : null

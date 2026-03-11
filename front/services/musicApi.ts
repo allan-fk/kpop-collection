@@ -36,6 +36,42 @@ export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => 
   return data["release-groups"] ?? [];
 };
 
+// ── Barcode search ────────────────────────────────────────────────────────────
+
+// Les codes-barres sont attachés aux Releases, pas aux Release Groups.
+// On récupère le release-group embarqué dans chaque release, puis on le
+// convertit en MBReleaseGroup pour être compatible avec le reste de l'app.
+export const searchAlbumByBarcode = async (
+  barcode: string
+): Promise<MBReleaseGroup[]> => {
+  const url = `${MB_BASE}/release?query=barcode:${encodeURIComponent(barcode)}&inc=release-groups+artist-credits&fmt=json`;
+  const res = await fetch(url, { headers: MB_HEADERS });
+  if (!res.ok) throw new Error(`MusicBrainz barcode search failed: ${res.status}`);
+
+  const data = await res.json();
+  const releases: any[] = data.releases ?? [];
+
+  // Dé-duplique les release-groups et restitue le type MBReleaseGroup
+  const seen = new Set<string>();
+  const groups: MBReleaseGroup[] = [];
+
+  for (const release of releases) {
+    const rg = release["release-group"];
+    if (!rg || seen.has(rg.id)) continue;
+    seen.add(rg.id);
+    groups.push({
+      id: rg.id,
+      title: rg.title ?? release.title,
+      "primary-type": rg["primary-type"],
+      "first-release-date": rg["first-release-date"],
+      // L'artist-credit est sur la release, on le remonte sur le group
+      "artist-credit": release["artist-credit"],
+    });
+  }
+
+  return groups;
+};
+
 // ── Details ───────────────────────────────────────────────────────────────────
 
 export const fetchAlbumDetails = async (id: string): Promise<MBReleaseGroupDetails> => {

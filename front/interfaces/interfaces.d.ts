@@ -83,6 +83,14 @@ interface SavedMovie {
   posterUrl: string;
 }
 
+interface SavedAlbum {
+  id: number;
+  releaseGroupId: string;
+  title: string;
+  artist: string;
+  coverUrl: string;
+}
+
 // ── MusicBrainz ───────────────────────────────────────────────────────────────
 
 interface MBArtistCredit {

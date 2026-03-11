@@ -4,6 +4,7 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 
 import { icons } from "@/constants/icons";
 import { getAlbumCoverUrl } from "@/services/musicApi";
+import { useAlbumFavorites } from "@/services/useAlbumFavorites";
 
 const PLACEHOLDER = "https://placehold.co/500x500/1a1a1a/FFFFFF.png";
 
@@ -13,7 +14,9 @@ interface AlbumCardProps {
 
 const AlbumCard = ({ album }: AlbumCardProps) => {
   const [coverError, setCoverError] = useState(false);
+  const { isFavorite, toggleFavorite } = useAlbumFavorites();
 
+  const favorited = isFavorite(album.id);
   const artistName =
     album["artist-credit"]?.map((ac) => ac.artist.name).join(", ") ??
     "Unknown Artist";
@@ -23,12 +26,27 @@ const AlbumCard = ({ album }: AlbumCardProps) => {
   return (
     <Link href={`/albums/${album.id}`} asChild>
       <TouchableOpacity className="w-[30%]">
-        <Image
-          source={{ uri: coverUri }}
-          className="w-full h-52 rounded-lg"
-          resizeMode="cover"
-          onError={() => setCoverError(true)}
-        />
+        <View className="relative">
+          <Image
+            source={{ uri: coverUri }}
+            className="w-full h-52 rounded-lg"
+            resizeMode="cover"
+            onError={() => setCoverError(true)}
+          />
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorite(album);
+            }}
+            className="absolute top-2 right-2 bg-black/50 rounded-full p-1"
+          >
+            <Image
+              source={icons.save}
+              className="size-5"
+              style={{ tintColor: favorited ? "#FFD700" : "#FFFFFF" }}
+            />
+          </TouchableOpacity>
+        </View>
 
         <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>
           {album.title}
