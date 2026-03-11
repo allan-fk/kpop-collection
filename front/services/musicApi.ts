@@ -6,12 +6,32 @@ const MB_HEADERS = {
   "User-Agent": "KpopCollection/1.0 ( allankleinpro@gmail.com )",
 };
 
-// ── Search ────────────────────────────────────────────────────────────────────
+/// ── Search ────────────────────────────────────────────────────────────────────
 
 export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => {
-  const url = `${MB_BASE}/release-group?query=${encodeURIComponent(query)}&type=album&fmt=json&limit=20`;
+  // 1. On nettoie toujours la requête pour éviter les erreurs de syntaxe Lucene
+  const cleanedQuery = query.replace(/['"\\+\-!(){}[\]^~*?:|&]/g, "").trim();
+  
+  if (!cleanedQuery) return []; // Évite de faire une requête vide
+
+  // 2. On construit les différents filtres
+  // Cible de la recherche : Titre de l'album (par défaut) OU Nom de l'artiste
+  const searchTarget = `("${cleanedQuery}" OR artist:"${cleanedQuery}")`;
+  
+  // Les tags étendus pour la musique coréenne et la K-pop
+  const tags = `(tag:kpop OR tag:"k-pop" OR tag:korea OR tag:korean OR tag:southkorea OR tag:"south-korea")`;
+  
+  // Les types de projets (Albums complets et Mini-Albums/EPs)
+  const types = `(primarytype:album OR primarytype:ep)`;
+
+  // 3. On assemble la requête finale
+  const luceneQuery = `${searchTarget} AND ${tags} AND ${types}`;
+  
+  const url = `${MB_BASE}/release-group?query=${encodeURIComponent(luceneQuery)}&fmt=json&limit=20`;
+  
   const res = await fetch(url, { headers: MB_HEADERS });
   if (!res.ok) throw new Error(`MusicBrainz search failed: ${res.status}`);
+  
   const data: MBSearchResponse = await res.json();
   return data["release-groups"] ?? [];
 };
