@@ -1,5 +1,6 @@
 const MB_BASE = "https://musicbrainz.org/ws/2";
 const CAA_BASE = "https://coverartarchive.org";
+const API_BASE = "http://localhost:8080/api";
 
 const MB_HEADERS = {
   Accept: "application/json",
@@ -90,6 +91,18 @@ export const fetchAlbumTracks = async (releaseId: string): Promise<MBTrack[]> =>
   const data = await res.json();
   const media: MBMedia[] = data.media ?? [];
   return media.flatMap((m) => m.tracks ?? []);
+};
+
+// ── Backend barcode scan ──────────────────────────────────────────────────────
+
+export const uploadImageToScanBarcode = async (imageUri: string): Promise<string> => {
+  const body = new FormData();
+  body.append("file", { uri: imageUri, name: "scan.jpg", type: "image/jpeg" } as any);
+
+  const res = await fetch(`${API_BASE}/barcode/scan`, { method: "POST", body });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+  return text;
 };
 
 // ── Cover Art Archive ─────────────────────────────────────────────────────────

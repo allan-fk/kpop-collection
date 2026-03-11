@@ -11,14 +11,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
-// @ts-ignore : expo-barcode-scanner est déprécié mais expo-camera ne possède pas encore scanFromURLAsync
-import { BarCodeScanner } from "expo-barcode-scanner";
-
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import SearchBar from "@/components/SearchBar";
 import AlbumCard from "@/components/AlbumCard";
-import { searchAlbums, searchAlbumByBarcode } from "@/services/musicApi";
+import { searchAlbums, searchAlbumByBarcode, uploadImageToScanBarcode } from "@/services/musicApi";
 
 const Albums = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,19 +74,8 @@ const Albums = () => {
     setError(null);
 
     try {
-      // 3. Lecture du code-barres depuis l'image statique
-      // @ts-ignore : ignorer l'avertissement de dépréciation
-      const barcodes = await BarCodeScanner.scanFromURLAsync(imageUri);
-
-      if (!barcodes || barcodes.length === 0) {
-        Alert.alert(
-          "Aucun code-barres détecté",
-          "Aucun code-barres n'a été trouvé sur cette image. Essayez avec une photo plus nette."
-        );
-        return;
-      }
-
-      const barcode = barcodes[0].data;
+      // 3. Envoi de l'image au backend pour décodage du code-barres
+      const barcode = await uploadImageToScanBarcode(imageUri);
 
       // 4. Recherche de l'album via le code-barres
       const results = await searchAlbumByBarcode(barcode);
@@ -106,11 +92,9 @@ const Albums = () => {
       setSearchQuery("");
       setAlbums(results);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Barcode scan failed");
-      Alert.alert(
-        "Erreur de scan",
-        "Une erreur est survenue lors de l'analyse de l'image."
-      );
+      const message = e instanceof Error ? e.message : "Barcode scan failed";
+      Alert.alert("Erreur de scan", message);
+      setError(message);
     } finally {
       setLoading(false);
     }
