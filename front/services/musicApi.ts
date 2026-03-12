@@ -1,6 +1,12 @@
 const MB_BASE = "https://musicbrainz.org/ws/2";
 const CAA_BASE = "https://coverartarchive.org";
-const API_BASE = "http://localhost:8080/api";
+const API_BASE = __DEV__ 
+  ? process.env.EXPO_PUBLIC_LOCAL_API_URL 
+  : process.env.EXPO_PUBLIC_API_URL;
+
+console.log("Mode développement:", __DEV__);
+console.log("URL utilisée:", API_BASE);
+//const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const MB_HEADERS = {
   Accept: "application/json",

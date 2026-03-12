@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { getAlbumCoverUrl } from "@/services/musicApi";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = __DEV__ 
+  ? process.env.EXPO_PUBLIC_LOCAL_API_URL 
+  : process.env.EXPO_PUBLIC_API_URL;
+
 
 export const useAlbumFavorites = () => {
   const [savedAlbums, setSavedAlbums] = useState<SavedAlbum[]>([]);

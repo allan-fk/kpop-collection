@@ -1,221 +1,182 @@
-// import {
-//     View,
-//     Text,
-//     ScrollView,
-//     Image,
-//     FlatList,
-//     ActivityIndicator,
-// } from "react-native";
-// import { useRouter } from "expo-router";
-// import useFetch from "../../services/useFetch";
-// import { fetchMovies } from "@/services/api";
-// import { icons } from "@/constants/icons";
-// import { images } from "@/constants/images";
-// import SearchBar from "@/components/SearchBar";
-// import MovieCard from "@/components/MovieCard";
-// import TrendingCard from "@/components/TrendingCard";
-// import {getTrendingMovies} from "@/services/appwrite";
-
-// const Index = () => {
-//     const router = useRouter();
-
-//     // Fetch trending movies from Appwrite
-//     const {
-//         data: trendingMovies,
-//         loading: trendingLoading,
-//         error: trendingError,
-//     } = useFetch(getTrendingMovies);
-
-//     // Fetch latest movies from the API
-//     const {
-//         data: movies,
-//         loading: moviesLoading,
-//         error: moviesError,
-//     } = useFetch(() => fetchMovies({ query: "" }));
-
-//     return (
-//         <View className="flex-1 bg-primary">
-//             <Image
-//                 source={images.bg}
-//                 className="absolute w-full z-0"
-//                 resizeMode="cover"
-//             />
-//             <ScrollView
-//                 className="flex-1 px-5"
-//                 showsVerticalScrollIndicator={false}
-//                 contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
-//             >
-//                 <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
-//                 {/* Display loading indicator if either fetch is in progress */}
-//                 {moviesLoading || trendingLoading ? (
-//                     <ActivityIndicator size="large" color="#0000ff" className="mt-10 self-center" />
-//                 ) : moviesError || trendingError ? (
-//                     <Text>Error: {moviesError?.message || trendingError?.message}</Text>
-//                 ) : (
-//                     <View className="flex-1 mt-5">
-//                         <SearchBar
-//                             onPress={() => router.push("/search")}
-//                             placeholder="Search"
-//                         />
-//                         {/* Conditionally render the trending movies section if data is available */}
-//                         {trendingMovies && (
-//                             <View className="mt-10">
-//                                 <Text className="text-lg text-white font-bold mb-3">Trending Movies</Text>
-//                                 <FlatList
-//                                     horizontal // Enables horizontal scrolling
-//                                     showsHorizontalScrollIndicator={false}
-//                                     className="mb-4 mt-3"
-//                                     data={trendingMovies}
-//                                     renderItem={({ item, index }) => (
-//                                         // Renders the custom card for each trending movie
-//                                         <TrendingCard movie={item} index={index} />
-//                                     )}
-//                                     keyExtractor={(item, index) => `trending_${item.movie_id}_${index}`}
-//                                 />
-//                             </View>
-//                         )}
-//                         <>
-//                             <Text className="text-lg text-white font-bold mt-5 mb-3">List</Text>
-//                             <FlatList
-//     data={[
-//         {
-//             id: 1,
-//             title: "Jujutsu kaisen tome 7",
-//             adult: false,
-//             backdrop_path: images.poster1,
-//             genre_ids: [28, 878, 12],
-//             original_language: "en",
-//             original_title: "Inception",
-//             overview: "Dom Cobb est un voleur expérimenté...",
-//             popularity: 185.5,
-//             poster_path: images.poster1, // Image 1
-//             release_date: "2010-07-16",
-//             video: false,
-//             vote_average: 25.0,
-//             vote_count: 35400,
-//         }
-        
-//     ]}
-//     renderItem={({ item }) => <MovieCard {...item} />}
-//     keyExtractor={(item, index) => `latest_${item.id}_${index}`}
-//     numColumns={3}
-//     columnWrapperStyle={{
-//         justifyContent: "flex-start",
-//         gap: 20,
-//         paddingRight: 5,
-//         marginBottom: 10,
-//     }}
-//     className="mt-2 pb-32"
-//     scrollEnabled={false}
-// />
-//                         </>
-//                     </View>
-//                 )}
-//             </ScrollView>
-//         </View>
-//     );
-// };
-
-// export default Index;
-
+import { useState, useEffect } from "react";
 import {
-    View,
-    Text,
-    ScrollView,
-    Image,
-    FlatList,
-    ActivityIndicator,
+  Alert,
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
-import useFetch from "../../services/useFetch";
-import { fetchMovies } from "@/services/api";
-import { icons } from "@/constants/icons";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+
 import { images } from "@/constants/images";
+import { icons } from "@/constants/icons";
 import SearchBar from "@/components/SearchBar";
-import MovieCard from "@/components/MovieCard";
-import TrendingCard from "@/components/TrendingCard";
-import {getTrendingMovies} from "@/services/appwrite";
+import AlbumCard from "@/components/AlbumCard";
+import { searchAlbums, searchAlbumByBarcode, uploadImageToScanBarcode } from "@/services/musicApi";
 
 const Index = () => {
-    const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [albums, setAlbums] = useState<MBReleaseGroup[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // Fetch trending movies from Appwrite
-    const {
-        data: trendingMovies,
-        loading: trendingLoading,
-        error: trendingError,
-    } = useFetch(getTrendingMovies);
+  // ── Recherche textuelle (debounce 2000ms imposé par MusicBrainz) ─────────────
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setAlbums([]);
+      setError(null);
+      return;
+    }
 
-    // Fetch latest movies from the API
-    const {
-        data: movies,
-        loading: moviesLoading,
-        error: moviesError,
-    } = useFetch(() => fetchMovies({ query: "" }));
+    const timeoutId = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const results = await searchAlbums(searchQuery);
+        setAlbums(results);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Search failed");
+        setAlbums([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 2000);
 
-    return (
-        <View className="flex-1 bg-primary">
-            <Image
-                source={images.bg}
-                className="absolute w-full z-0"
-                resizeMode="cover"
-            />
-            <ScrollView
-                className="flex-1 px-5"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
-            >
-                <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
-                {/* Display loading indicator if either fetch is in progress */}
-                {moviesLoading || trendingLoading ? (
-                    <ActivityIndicator size="large" color="#0000ff" className="mt-10 self-center" />
-                ) : moviesError || trendingError ? (
-                    <Text>Error: {moviesError?.message || trendingError?.message}</Text>
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // ── Recherche par code-barres ────────────────────────────────────────────────
+  const handlePickImage = async () => {
+    // 1. Demande de permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission requise",
+        "Autorisez l'accès à votre galerie pour utiliser cette fonctionnalité."
+      );
+      return;
+    }
+
+    // 2. Sélection de l'image
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      quality: 1,
+    });
+
+    if (picked.canceled || !picked.assets?.[0]) return;
+
+    const imageUri = picked.assets[0].uri;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 3. Envoi de l'image au backend pour décodage du code-barres
+      const barcode = await uploadImageToScanBarcode(imageUri);
+
+      // 4. Recherche de l'album via le code-barres
+      const results = await searchAlbumByBarcode(barcode);
+
+      if (!results || results.length === 0) {
+        Alert.alert(
+          "Album introuvable",
+          `Aucun album n'a été trouvé pour le code-barres : ${barcode}`
+        );
+        return;
+      }
+
+      // 5. Mise à jour de la liste et effacement de la recherche textuelle
+      setSearchQuery("");
+      setAlbums(results);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Barcode scan failed";
+      Alert.alert("Erreur de scan", message);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View className="flex-1 bg-primary">
+      <Image
+        source={images.bg}
+        className="flex-1 absolute w-full z-0"
+        resizeMode="cover"
+      />
+      <FlatList
+        className="px-5"
+        data={albums}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <AlbumCard album={item} />}
+        numColumns={3}
+        columnWrapperStyle={{
+          justifyContent: "flex-start",
+          gap: 16,
+          marginVertical: 16,
+        }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={
+          <>
+            <View className="w-full flex-row justify-center mt-20 items-center">
+              <Image source={icons.logo} className="w-12 h-10" />
+            </View>
+
+            {/* SearchBar + bouton galerie */}
+            <View className="my-5 flex-row items-center gap-x-3">
+              <View className="flex-1">
+                <SearchBar
+                  placeholder="Search for an album"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+              <TouchableOpacity
+                onPress={handlePickImage}
+                className="bg-dark-200 rounded-full p-3"
+                disabled={loading}
+              >
+                <Ionicons name="barcode-outline" size={24} color="#ab8bff" />
+              </TouchableOpacity>
+            </View>
+
+            {loading && (
+              <ActivityIndicator size="large" color="#0000ff" className="my-3" />
+            )}
+            {error && (
+              <Text className="text-red-500 px-5 my-3">Error: {error}</Text>
+            )}
+            {!loading && !error && albums.length > 0 && (
+              <Text className="text-xl text-white font-bold">
+                {searchQuery.trim() ? (
+                  <>
+                    Results for{" "}
+                    <Text className="text-accent">{searchQuery}</Text>
+                  </>
                 ) : (
-                    <View className="flex-1 mt-5">
-                        <SearchBar
-                            onPress={() => router.push("/search")}
-                            placeholder="Search for a movie"
-                        />
-                        {/* Conditionally render the trending movies section if data is available */}
-                        {trendingMovies && (
-                            <View className="mt-10">
-                                <Text className="text-lg text-white font-bold mb-3">Trending Movies</Text>
-                                <FlatList
-                                    horizontal // Enables horizontal scrolling
-                                    showsHorizontalScrollIndicator={false}
-                                    className="mb-4 mt-3"
-                                    data={trendingMovies}
-                                    renderItem={({ item, index }) => (
-                                        // Renders the custom card for each trending movie
-                                        <TrendingCard movie={item} index={index} />
-                                    )}
-                                    keyExtractor={(item, index) => `trending_${item.movie_id}_${index}`}
-                                />
-                            </View>
-                        )}
-                        <>
-                            <Text className="text-lg text-white font-bold mt-5 mb-3">Latest Movies</Text>
-                            <FlatList
-                                data={movies}
-                                renderItem={({ item }) => <MovieCard {...item} />}
-                                keyExtractor={(item, index) => `latest_${item.id}_${index}`}
-                                numColumns={3}
-                                columnWrapperStyle={{
-                                    justifyContent: "flex-start",
-                                    gap: 20,
-                                    paddingRight: 5,
-                                    marginBottom: 10,
-                                }}
-                                className="mt-2 pb-32"
-                                scrollEnabled={false} // Scrolling is handled by the parent ScrollView
-                            />
-                        </>
-                    </View>
+                  "Results"
                 )}
-            </ScrollView>
-        </View>
-    );
+              </Text>
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          !loading && !error ? (
+            <View className="mt-10 px-5">
+              <Text className="text-center text-gray-500">
+                {searchQuery.trim()
+                  ? "No albums found"
+                  : "Start typing or scan a barcode to find albums"}
+              </Text>
+            </View>
+          ) : null
+        }
+      />
+    </View>
+  );
 };
 
 export default Index;

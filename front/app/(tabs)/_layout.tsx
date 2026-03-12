@@ -66,7 +66,7 @@ const TabsLayout = () => {
             }}
         >
             {/* Define each screen within the tab navigator */}
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Home',
@@ -80,7 +80,7 @@ const TabsLayout = () => {
                         />
                     )
                 }}
-            />
+            /> */}
             {/* <Tabs.Screen
                 name="search"
                 options={{
@@ -96,7 +96,7 @@ const TabsLayout = () => {
                 }}
             /> */}
             <Tabs.Screen
-                name="albums"
+                name="index"
                 options={{
                     title: 'Albums',
                     headerShown: false,
