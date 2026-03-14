@@ -110,6 +110,20 @@ const TabsLayout = () => {
                 }}
             />
             <Tabs.Screen
+                name="latest-releases"
+                options={{
+                    title: 'Nouveautés',
+                    headerShown: false,
+                    tabBarIcon: ({focused}) => (
+                        <TabIcon
+                            focused={focused}
+                            icon={icons.home}
+                            title="Nouveautés"
+                        />
+                    )
+                }}
+            />
+            <Tabs.Screen
                 name="saved-albums"
                 options={{
                     title: 'Saved Albums',

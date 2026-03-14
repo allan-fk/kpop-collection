@@ -34,28 +34,69 @@ const parseDiscogsTitle = (raw: string) => {
 };
 
 // Fetch Discogs avec vérification du rate-limit (429).
-// Essaie d'abord /releases/{id}, bascule sur /masters/{id} si 404.
+// Si l'ID est préfixé ("master-123" ou "release-123"), la route est déterminée directement.
+// Sinon (favoris sauvegardés sans préfixe) : fallback /releases → /masters si 404.
 const fetchDiscogsResource = async (id: string): Promise<any> => {
-  const releaseRes = await fetch(`${DISCOGS_BASE}/releases/${id}`, {
-    headers: DISCOGS_HEADERS,
-  });
-  if (releaseRes.status === 429) {
-    throw new Error("Rate limit Discogs atteint (60 req/min). Réessaie dans quelques secondes.");
-  }
-  if (releaseRes.ok) return releaseRes.json();
+  const check429 = (status: number) => {
+    if (status === 429)
+      throw new Error("Rate limit Discogs atteint (60 req/min). Réessaie dans quelques secondes.");
+  };
 
-  // Fallback master si 404
-  if (releaseRes.status !== 404) {
-    throw new Error(`Discogs request failed: ${releaseRes.status}`);
+  if (id.startsWith("master-")) {
+    const realId = id.slice("master-".length);
+    const res = await fetch(`${DISCOGS_BASE}/masters/${realId}`, { headers: DISCOGS_HEADERS });
+    check429(res.status);
+    if (!res.ok) throw new Error(`Discogs request failed: ${res.status}`);
+    return res.json();
   }
-  const masterRes = await fetch(`${DISCOGS_BASE}/masters/${id}`, {
-    headers: DISCOGS_HEADERS,
-  });
-  if (masterRes.status === 429) {
-    throw new Error("Rate limit Discogs atteint (60 req/min). Réessaie dans quelques secondes.");
+
+  if (id.startsWith("release-")) {
+    const realId = id.slice("release-".length);
+    const res = await fetch(`${DISCOGS_BASE}/releases/${realId}`, { headers: DISCOGS_HEADERS });
+    check429(res.status);
+    if (!res.ok) throw new Error(`Discogs request failed: ${res.status}`);
+    return res.json();
   }
+
+  // Rétrocompatibilité : ID sans préfixe (albums déjà en favoris)
+  const releaseRes = await fetch(`${DISCOGS_BASE}/releases/${id}`, { headers: DISCOGS_HEADERS });
+  check429(releaseRes.status);
+  if (releaseRes.ok) return releaseRes.json();
+  if (releaseRes.status !== 404) throw new Error(`Discogs request failed: ${releaseRes.status}`);
+
+  const masterRes = await fetch(`${DISCOGS_BASE}/masters/${id}`, { headers: DISCOGS_HEADERS });
+  check429(masterRes.status);
   if (!masterRes.ok) throw new Error(`Discogs request failed: ${masterRes.status}`);
   return masterRes.json();
+};
+
+// ── Latest releases ───────────────────────────────────────────────────────────
+
+export const fetchLatestReleases = async (): Promise<MBReleaseGroup[]> => {
+  const url = `${DISCOGS_BASE}/database/search?style=K-Pop&type=master&format=album&sort=year&sort_order=desc&per_page=20&page=1`;
+  const res = await fetch(url, { headers: DISCOGS_HEADERS });
+
+  if (res.status === 429) {
+    throw new Error("Rate limit Discogs atteint (60 req/min). Réessaie dans quelques secondes.");
+  }
+  if (!res.ok) throw new Error(`Discogs latest releases failed: ${res.status}`);
+
+  const data = await res.json();
+  const results: any[] = data.results ?? [];
+
+  return results.map((r: any) => {
+    const { artistName, albumTitle } = parseDiscogsTitle(r.title ?? "");
+    return {
+      id: `master-${r.id}`,
+      title: albumTitle,
+      "primary-type": "Album",
+      "first-release-date": r.year?.toString(),
+      "artist-credit": [
+        { artist: { id: r.id.toString(), name: artistName, "sort-name": artistName } },
+      ],
+      coverUrl: r.cover_image || r.thumb || undefined,
+    } satisfies MBReleaseGroup;
+  });
 };
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -77,7 +118,7 @@ export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => 
   return results.map((r: any) => {
     const { artistName, albumTitle } = parseDiscogsTitle(r.title ?? "");
     return {
-      id: r.id.toString(),
+      id: `master-${r.id}`,
       title: albumTitle,
       "primary-type": "Album",
       "first-release-date": r.year?.toString(),
@@ -110,7 +151,7 @@ export const searchAlbumByBarcode = async (
     .map((r: any) => {
       const { artistName, albumTitle } = parseDiscogsTitle(r.title ?? "");
       return {
-        id: r.id.toString(),
+        id: `${r.type}-${r.id}`,
         title: albumTitle,
         "primary-type": r.format?.[0] ?? "Album",
         "first-release-date": r.year?.toString(),
