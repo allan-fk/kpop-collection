@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
 import { icons } from "@/constants/icons";
-import { getAlbumCoverUrl } from "@/services/musicApi";
 import { useAlbumFavorites } from "@/services/useAlbumFavorites";
 
 const PLACEHOLDER = "https://placehold.co/500x500/1a1a1a/FFFFFF.png";
@@ -21,7 +20,7 @@ const AlbumCard = ({ album }: AlbumCardProps) => {
     album["artist-credit"]?.map((ac) => ac.artist.name).join(", ") ??
     "Unknown Artist";
   const year = album["first-release-date"]?.split("-")[0] ?? "";
-  const coverUri = coverError ? PLACEHOLDER : (album.coverUrl ?? getAlbumCoverUrl(album.id));
+  const coverUri = coverError || !album.coverUrl ? PLACEHOLDER : album.coverUrl;
 
   return (
     <Link href={`/albums/${album.id}`} asChild>

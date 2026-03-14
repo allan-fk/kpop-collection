@@ -148,4 +148,6 @@ interface MBReleaseGroupDetails {
   "first-release-date"?: string;
   "artist-credit"?: MBArtistCredit[];
   releases?: MBRelease[];
+  /** URL directe de la pochette (fournie par Discogs) */
+  coverUrl?: string;
 }

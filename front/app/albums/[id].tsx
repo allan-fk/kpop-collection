@@ -16,7 +16,6 @@ import useFetch from "../../services/useFetch";
 import {
   fetchAlbumDetails,
   fetchAlbumTracks,
-  getAlbumCoverUrl,
   formatTrackDuration,
 } from "@/services/musicApi";
 
@@ -60,7 +59,7 @@ const AlbumDetails = () => {
     "Unknown Artist";
 
   const year = album?.["first-release-date"]?.split("-")[0] ?? null;
-  const coverUri = coverError ? PLACEHOLDER : getAlbumCoverUrl(id as string);
+  const coverUri = coverError || !album?.coverUrl ? PLACEHOLDER : album.coverUrl;
 
   if (loading) {
     return (

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAlbumCoverUrl } from "@/services/musicApi";
 
 // const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const API_URL = __DEV__ 
@@ -56,7 +55,7 @@ export const useAlbumFavorites = () => {
               releaseGroupId: album.id,
               title: album.title,
               artist: artistName,
-              coverUrl: getAlbumCoverUrl(album.id),
+              coverUrl: album.coverUrl || "https://placehold.co/500x500/1a1a1a/FFFFFF.png",
             }),
           });
           if (res.ok) {
