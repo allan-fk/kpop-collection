@@ -13,6 +13,12 @@ const MB_HEADERS = {
   "User-Agent": "KpopCollection/1.0 ( allankleinpro@gmail.com )",
 };
 
+const DISCOGS_HEADERS = {
+  Accept: "application/json",
+  "User-Agent": "KpopCollection/1.0 ( allankleinpro@gmail.com )",
+  Authorization: `Discogs key=${process.env.EXPO_PUBLIC_DISCOGS_CONSUMER_KEY}, secret=${process.env.EXPO_PUBLIC_DISCOGS_CONSUMER_SECRET}`,
+};
+
 /// ── Search ────────────────────────────────────────────────────────────────────
 
 export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => {
@@ -43,40 +49,53 @@ export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => 
   return data["release-groups"] ?? [];
 };
 
-// ── Barcode search ────────────────────────────────────────────────────────────
+// ── Barcode search (Discogs) ──────────────────────────────────────────────────
 
-// Les codes-barres sont attachés aux Releases, pas aux Release Groups.
-// On récupère le release-group embarqué dans chaque release, puis on le
-// convertit en MBReleaseGroup pour être compatible avec le reste de l'app.
+// Discogs est utilisé pour la recherche par code-barres car son catalogue
+// d'éditions physiques K-pop est bien plus complet que MusicBrainz.
+// Les résultats sont mappés vers MBReleaseGroup pour rester compatibles avec
+// tous les composants UI existants (AlbumCard, saved-albums, etc.).
+// Le champ coverUrl (optionnel sur MBReleaseGroup) est renseigné directement
+// depuis Discogs — AlbumCard l'utilise en priorité sur Cover Art Archive.
 export const searchAlbumByBarcode = async (
   barcode: string
 ): Promise<MBReleaseGroup[]> => {
-  const url = `${MB_BASE}/release?query=barcode:${encodeURIComponent(barcode)}&inc=release-groups+artist-credits&fmt=json`;
-  const res = await fetch(url, { headers: MB_HEADERS });
-  if (!res.ok) throw new Error(`MusicBrainz barcode search failed: ${res.status}`);
+  const url = `https://api.discogs.com/database/search?barcode=${encodeURIComponent(barcode)}`;
+  const res = await fetch(url, { headers: DISCOGS_HEADERS });
 
-  const data = await res.json();
-  const releases: any[] = data.releases ?? [];
-
-  // Dé-duplique les release-groups et restitue le type MBReleaseGroup
-  const seen = new Set<string>();
-  const groups: MBReleaseGroup[] = [];
-
-  for (const release of releases) {
-    const rg = release["release-group"];
-    if (!rg || seen.has(rg.id)) continue;
-    seen.add(rg.id);
-    groups.push({
-      id: rg.id,
-      title: rg.title ?? release.title,
-      "primary-type": rg["primary-type"],
-      "first-release-date": rg["first-release-date"],
-      // L'artist-credit est sur la release, on le remonte sur le group
-      "artist-credit": release["artist-credit"],
-    });
+  if (res.status === 429) {
+    throw new Error("Discogs rate limit atteint (60 req/min). Réessaie dans quelques secondes.");
+  }
+  if (!res.ok) {
+    throw new Error(`Discogs search failed: ${res.status}`);
   }
 
-  return groups;
+  const data = await res.json();
+  const results: any[] = data.results ?? [];
+
+  return results
+    // Garde uniquement les releases et masters, pas les artistes/labels
+    .filter((r: any) => r.type === "release" || r.type === "master")
+    .map((r: any) => {
+      // Discogs formate le titre "Artiste - Titre de l'album"
+      const dashIndex = r.title.indexOf(" - ");
+      const artistName = dashIndex !== -1 ? r.title.slice(0, dashIndex) : "Unknown Artist";
+      const albumTitle = dashIndex !== -1 ? r.title.slice(dashIndex + 3) : r.title;
+
+      return {
+        id: r.id.toString(),
+        title: albumTitle,
+        "primary-type": r.format?.[0] ?? "Album",
+        "first-release-date": r.year?.toString(),
+        "artist-credit": [
+          {
+            artist: { id: r.id.toString(), name: artistName, "sort-name": artistName },
+          },
+        ],
+        // URL de la pochette fournie directement par Discogs
+        coverUrl: r.cover_image || r.thumb || undefined,
+      } satisfies MBReleaseGroup;
+    });
 };
 
 // ── Details ───────────────────────────────────────────────────────────────────

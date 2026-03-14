@@ -109,6 +109,8 @@ interface MBReleaseGroup {
   "primary-type"?: string;
   "first-release-date"?: string;
   "artist-credit"?: MBArtistCredit[];
+  /** URL directe de la pochette (renseignée par Discogs, absente pour les résultats MusicBrainz) */
+  coverUrl?: string;
 }
 
 interface MBSearchResponse {

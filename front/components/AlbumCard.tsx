@@ -21,7 +21,7 @@ const AlbumCard = ({ album }: AlbumCardProps) => {
     album["artist-credit"]?.map((ac) => ac.artist.name).join(", ") ??
     "Unknown Artist";
   const year = album["first-release-date"]?.split("-")[0] ?? "";
-  const coverUri = coverError ? PLACEHOLDER : getAlbumCoverUrl(album.id);
+  const coverUri = coverError ? PLACEHOLDER : (album.coverUrl ?? getAlbumCoverUrl(album.id));
 
   return (
     <Link href={`/albums/${album.id}`} asChild>
