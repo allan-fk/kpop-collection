@@ -96,20 +96,6 @@ const TabsLayout = () => {
                 }}
             /> */}
             <Tabs.Screen
-                name="index"
-                options={{
-                    title: 'Albums',
-                    headerShown: false,
-                    tabBarIcon: ({focused}) => (
-                        <TabIcon
-                            focused={focused}
-                            icon={icons.play}
-                            title="Albums"
-                        />
-                    )
-                }}
-            />
-            <Tabs.Screen
                 name="latest-releases"
                 options={{
                     title: 'Nouveautés',
@@ -123,6 +109,21 @@ const TabsLayout = () => {
                     )
                 }}
             />
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: 'Recherche',
+                    headerShown: false,
+                    tabBarIcon: ({focused}) => (
+                        <TabIcon
+                            focused={focused}
+                            icon={icons.search}
+                            title="Recherche"
+                        />
+                    )
+                }}
+            />
+            
             <Tabs.Screen
                 name="saved-albums"
                 options={{
