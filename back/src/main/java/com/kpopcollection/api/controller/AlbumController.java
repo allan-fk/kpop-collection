@@ -16,6 +16,11 @@ public class AlbumController {
 
     private final AlbumService albumService;
 
+    @GetMapping("/latest")
+    public ResponseEntity<List<SaveAlbumRequest>> getLatestReleases() {
+        return ResponseEntity.ok(albumService.getLatestReleases());
+    }
+
     @GetMapping("/saved")
     public ResponseEntity<List<SavedAlbum>> getSavedAlbums() {
         return ResponseEntity.ok(albumService.getSavedAlbums());

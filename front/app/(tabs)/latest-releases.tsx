@@ -4,10 +4,10 @@ import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import AlbumCard from "@/components/AlbumCard";
 import useFetch from "@/services/useFetch";
-import { fetchLatestReleases } from "@/services/musicApi";
+import { fetchLatestReleases, fetchLatestReleases2 } from "@/services/musicApi";
 
 const LatestReleases = () => {
-  const { data: albums, loading, error } = useFetch(fetchLatestReleases);
+  const { data: albums, loading, error } = useFetch(fetchLatestReleases2);
 
   return (
     <View className="flex-1 bg-primary">

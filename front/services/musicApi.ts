@@ -99,6 +99,35 @@ export const fetchLatestReleases = async (): Promise<MBReleaseGroup[]> => {
   });
 };
 
+export const fetchLatestReleases2 = async (): Promise<MBReleaseGroup[]> => {
+  // Appel à votre nouveau endpoint Java
+  const res = await fetch(`${API_BASE}/albums/latest`);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch latest releases from backend: ${res.status}`);
+  }
+
+  const data: any[] = await res.json();
+
+  // Mapping des données SaveAlbumRequest vers MBReleaseGroup
+  return data.map((album: any) => ({
+    id: album.releaseGroupId, // On utilise l'ID du groupe de sortie
+    title: album.title,
+    "primary-type": "Album",
+    "first-release-date": "2026",
+    coverUrl: album.coverUrl,
+    "artist-credit": [
+      { 
+        artist: { 
+          id: album.releaseGroupId, 
+          name: album.artist, 
+          "sort-name": album.artist 
+        } 
+      },
+    ],
+  } satisfies MBReleaseGroup));
+};
+
 // ── Search ────────────────────────────────────────────────────────────────────
 
 export const searchAlbums = async (query: string): Promise<MBReleaseGroup[]> => {
