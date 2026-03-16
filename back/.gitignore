@@ -10,3 +10,6 @@ target/
 
 ### Mac OS ###
 .DS_Store
+
+### Secrets ###
+.env.local
