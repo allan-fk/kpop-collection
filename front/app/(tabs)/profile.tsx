@@ -14,9 +14,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
 import { useAlbumFavorites } from "@/services/useAlbumFavorites";
 
-const API_BASE = __DEV__
-  ? process.env.EXPO_PUBLIC_LOCAL_API_URL
-  : process.env.EXPO_PUBLIC_API_URL;
+const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const PLACEHOLDER = "https://placehold.co/500x500/1a1a1a/FFFFFF.png";
 

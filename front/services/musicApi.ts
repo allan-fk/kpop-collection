@@ -1,10 +1,7 @@
 const DISCOGS_BASE = "https://api.discogs.com";
 
-const API_BASE = __DEV__
-  ? process.env.EXPO_PUBLIC_LOCAL_API_URL
-  : process.env.EXPO_PUBLIC_API_URL;
+const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
-console.log("Mode développement:", __DEV__);
 console.log("URL utilisée:", API_BASE);
 
 const DISCOGS_HEADERS = {
