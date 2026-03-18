@@ -13,12 +13,16 @@
       "bundleIdentifier": "com.allanfk.kpopcollection"
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.allanfk.kpopcollection"
+      "package": "com.allanfk.kpopcollection",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +46,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a28e6b2f-62f4-4e16-8f16-4924dc9b2ed7"
+      }
+    },
+    "owner": "allanfk"
   }
 }
